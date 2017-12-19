@@ -6,6 +6,8 @@ An example shell implementation in C, using system calls. Made as part of my Sys
 
 * [ ] Implement background command parsing - &.
 * [ ] Refactor the code a bit, add modularity and functions.
+* [ ] Add ability to pipe commands
+* [ ] Add ability to redirect STDIN and STDOUT, why not STDERR, too
 
 ## Bugs
 
