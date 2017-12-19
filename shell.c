@@ -36,7 +36,6 @@ int main(int argc, char const ** argv) {
         }
         command[n - 1] = '\0';
         char* cleared_command = string_trim_inplace(command);
-        printf("LENGTH OF CLEARED: %d\n", strlen(cleared_command));
 
         char *args[ARG_COUNT];
         int args_count = 0;
@@ -44,12 +43,12 @@ int main(int argc, char const ** argv) {
         int i;
         char buf[BUF_SIZE];
         int buf_index = 0;
-        for ( i = 0; i < n; i++ ) {
-            if (cleared_command[i] == ' ' || i == n - 1) {
+        for ( i = 0; i <= strlen(cleared_command); i++ ) {
+            if (cleared_command[i] == ' ' || i == strlen(cleared_command)) {
                 buf[buf_index] = '\0';
                 args[args_count] = (char*)malloc(sizeof(buf));
                 strncpy(args[args_count], buf, sizeof(buf));
-               args_count++;
+                args_count++;
                 buf_index = 0;
             } else {
                 buf[buf_index++] = cleared_command[i];

@@ -9,7 +9,8 @@ An example shell implementation in C, using system calls. Made as part of my Sys
 
 ## Bugs
 
-* [ ] Fix trimming spaces and tabs from end of command.
+* [x] Fix trimming spaces and tabs from end of command.
+* [ ] Fix ignoring spaces between command and its arguments
 
 ## Wild ideas
 
