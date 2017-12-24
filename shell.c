@@ -9,6 +9,7 @@
 #define BUF_SIZE 80
 #define ARG_COUNT 10
 
+/* Courtesy of stack overflow */
 char *string_trim_inplace(char *s) {
     while(isspace((unsigned char) *s)) s++;
     if (*s) {
@@ -36,6 +37,12 @@ int main(int argc, char const ** argv) {
         }
         command[n - 1] = '\0';
         char* cleared_command = string_trim_inplace(command);
+
+
+        if ( !strcmp(cleared_command, "exit") || !strcmp(cleared_command, "logout") ) {
+            printf("Goodbye!\n");
+            return 0;
+        }
 
         char *args[ARG_COUNT];
         int args_count = 0;
