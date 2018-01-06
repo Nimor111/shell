@@ -34,15 +34,21 @@ void split_until_pipe(char* s, char* dest)
             dest[i - 1] = '\0';
             break;
         } else {
-            s[i] = dest[i];
+            dest[i] = s[i];
         }
     }
 
     dest[i - 1] = '\0';
 }
 
-void exec_pipe(char * cmd1[], char * cmd2[])
+void exec_pipe(char** cmd1, char** cmd2)
 {
+    for (int i = 0; i < sizeof(cmd1) / sizeof(cmd1[0]); i++)
+        printf("CMD1 ARG[%d] = %s\n", i, cmd1[i]);
+
+    for (int i = 0; i < sizeof(cmd2) / sizeof(cmd2[0]); i++)
+        printf("CMD2 ARG[%d] = %s\n", i, cmd2[i]);
+
     int fd[2];
 
     pipe(fd);
@@ -55,17 +61,35 @@ void exec_pipe(char * cmd1[], char * cmd2[])
     }
 
     if (!pid) { // child
-        close(0);
-        dup(fd[0]);
-        close(fd[0]);
-        close(fd[1]);
-        execvp(*cmd2, (char* const*)&cmd2);
+        pid_t pid2;
+        if ((pid2 = fork()) == -1) {
+            perror("Error: ");
+            exit(1);
+        }
+
+        if (!pid2) { // grandchild
+            close(0);
+            dup(fd[0]);
+            close(fd[0]);
+            close(fd[1]);
+            if (execvp(*cmd2, (char* const*)&cmd2) == -1) {
+                perror("Read from pipe exec error: ");
+                exit(1);
+            }
+        } else { // child
+            close(1);
+            dup(fd[1]);
+            close(fd[1]);
+            close(fd[0]);
+            if (execvp(*cmd1, (char* const*)&cmd1) == -1) {
+                perror("Write to pipe exec error: ");
+                exit(1);
+            }
+        }
     } else { // parent
-        close(1);
-        dup(fd[1]);
-        close(fd[1]);
-        close(fd[0]);
-        execvp(*cmd1, (char* const*)&cmd1);
+        int _status;
+        wait(&_status);
+        return;
     }
 }
 
@@ -126,21 +150,75 @@ int main(int argc, char const** argv)
         }
 
         char* args[ARG_COUNT];
-        split_command(cleared_command, args);
         const char* string_after_pipe = (char*)malloc(BUF_SIZE * sizeof(char));
 
-        // DOES NOT WORK
+        // PARTIALLY WORKS
         if ((string_after_pipe = has_pipe(cleared_command)) != NULL) {
             char* args1[ARG_COUNT];
             char* cmd_before_pipe = (char*)malloc(BUF_SIZE * sizeof(char));
+            split_until_pipe(cleared_command, cmd_before_pipe);
             split_command(cmd_before_pipe, args1);
 
             char* args2[ARG_COUNT];
             split_command(&string_after_pipe[2], args2);
 
-            exec_pipe(args1, args2);
-            continue;
+            /* exec_pipe(args1, args2); */
+
+            /**** DEBUG COMMENTS ****/
+            /* for (int i = 0; args1[i] != NULL; i++) */
+            /*     printf("CMD1 ARG[%d] = %s\n", i, args1[i]); */
+
+            /* for (int i = 0; args2[i] != NULL; i++) */
+            /*     printf("CMD2 ARG[%d] = %s\n", i, args2[i]); */
+            /**** DEBUG COMMENTS ****/
+
+            int fd[2];
+
+            pipe(fd);
+
+            pid_t pid;
+
+            if ((pid = fork()) == -1) {
+                perror("Error: ");
+                exit(1);
+            }
+
+            if (!pid) { // child
+                pid_t pid2;
+                if ((pid2 = fork()) == -1) {
+                    perror("Error: ");
+                    exit(1);
+                }
+
+                if (!pid2) { // grandchild
+                    close(0);
+                    dup(fd[0]);
+                    close(fd[0]);
+                    close(fd[1]);
+                    if (execvp(*args2, (char* const*)&args2) == -1) {
+                        perror("Read from pipe exec error: ");
+                        exit(1);
+                    }
+                } else { // child
+                    close(1);
+                    dup(fd[1]);
+                    close(fd[1]);
+                    close(fd[0]);
+                    if (execvp(*args1, (char* const*)&args1) == -1) {
+                        perror("Write to pipe exec error: ");
+                        exit(1);
+                    }
+                }
+            } else { // parent
+                close(fd[0]);
+                close(fd[1]);
+                int _status;
+                wait(&_status);
+                continue;
+            }
         }
+
+        split_command(cleared_command, args);
 
         pid_t pid;
         if ((pid = fork()) == -1) {
@@ -164,6 +242,10 @@ int main(int argc, char const** argv)
 
         for (int i = 0; i < size; i++)
             free(args[i]);
-        free(prompt);
+
+        fflush(stdout);
     }
+
+    free(prompt);
+    return 0;
 }
