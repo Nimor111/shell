@@ -5,9 +5,11 @@ An example shell implementation in C, using system calls. Made as part of my Sys
 ## TODOs
 
 * [ ] Implement background command parsing - &.
-* [ ] Refactor the code a bit, add modularity and functions.
-* [ ] Add ability to pipe commands
+* [x] Refactor the code a bit, add modularity and functions.
+* [x] Add ability to pipe commands
 * [ ] Add ability to redirect STDIN and STDOUT, why not STDERR, too
+* [ ] Abstract piping into a working function
+* [ ] Add some structure to the project
 
 ## Bugs
 
