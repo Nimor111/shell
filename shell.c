@@ -26,7 +26,22 @@ char* string_trim_inplace(char* s)
     return s;
 }
 
-void exec_pipe(char const** cmd1, char const** cmd2)
+void split_until_pipe(char* s, char* dest)
+{
+    int i;
+    for (i = 0; i < BUF_SIZE; i++) {
+        if (s[i] == '|') {
+            dest[i - 1] = '\0';
+            break;
+        } else {
+            s[i] = dest[i];
+        }
+    }
+
+    dest[i - 1] = '\0';
+}
+
+void exec_pipe(char * cmd1[], char * cmd2[])
 {
     int fd[2];
 
@@ -54,10 +69,10 @@ void exec_pipe(char const** cmd1, char const** cmd2)
     }
 }
 
-char const* has_pipe(char const* command)
+char const* has_pipe(char* command)
 {
     char* result = NULL;
-    if ((result = strstr(command, "|"))) {
+    if ((result = strstr(command, "| "))) {
         return result;
     }
 
@@ -112,6 +127,20 @@ int main(int argc, char const** argv)
 
         char* args[ARG_COUNT];
         split_command(cleared_command, args);
+        const char* string_after_pipe = (char*)malloc(BUF_SIZE * sizeof(char));
+
+        // DOES NOT WORK
+        if ((string_after_pipe = has_pipe(cleared_command)) != NULL) {
+            char* args1[ARG_COUNT];
+            char* cmd_before_pipe = (char*)malloc(BUF_SIZE * sizeof(char));
+            split_command(cmd_before_pipe, args1);
+
+            char* args2[ARG_COUNT];
+            split_command(&string_after_pipe[2], args2);
+
+            exec_pipe(args1, args2);
+            continue;
+        }
 
         pid_t pid;
         if ((pid = fork()) == -1) {
@@ -127,7 +156,7 @@ int main(int argc, char const** argv)
         } else { // parent
             int status;
             wait(&status);
-            printf("Child finished with status %d\n", status);
+            /* printf("Child finished with status %d\n", status); */
             continue;
         }
 
