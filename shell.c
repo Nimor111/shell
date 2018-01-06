@@ -5,6 +5,7 @@
 #include <wait.h>
 #include <string.h>
 #include <ctype.h>
+#include <stdbool.h>
 
 #define BUF_SIZE 80
 #define ARG_COUNT 10
@@ -49,6 +50,36 @@ void exec_pipe(char const ** cmd1, char const ** cmd2) {
     }
 }
 
+char const * has_pipe(char const* command) {
+    char * result = NULL;
+    if ((result = strstr(command, "|"))) {
+        return result;
+    }
+
+    return result;
+}
+
+void split_command(char const * command, char ** args) {
+    int args_count = 0;
+
+    int i;
+    char buf[BUF_SIZE];
+    int buf_index = 0;
+    for ( i = 0; i <= strlen(command); i++ ) {
+        if (command[i] == ' ' || i == strlen(command)) {
+            buf[buf_index] = '\0';
+            args[args_count] = (char*)malloc(sizeof(buf));
+            strncpy(args[args_count], buf, sizeof(buf));
+            args_count++;
+            buf_index = 0;
+        } else {
+            buf[buf_index++] = command[i];
+        }
+    }
+
+    args[args_count] = NULL;
+}
+
 int main(int argc, char const ** argv) {
     char const * prompt = "msh> ";
     while(1) {
@@ -64,31 +95,14 @@ int main(int argc, char const ** argv) {
         command[n - 1] = '\0';
         char* cleared_command = string_trim_inplace(command);
 
+        char * args[ARG_COUNT];
+        split_command(cleared_command, args);
+        size_t size = sizeof(args) / sizeof(args[0]);
 
         if ( !strcmp(cleared_command, "exit") || !strcmp(cleared_command, "logout") ) {
             printf("Goodbye!\n");
             return 0;
         }
-
-        char *args[ARG_COUNT];
-        int args_count = 0;
-
-        int i;
-        char buf[BUF_SIZE];
-        int buf_index = 0;
-        for ( i = 0; i <= strlen(cleared_command); i++ ) {
-            if (cleared_command[i] == ' ' || i == strlen(cleared_command)) {
-                buf[buf_index] = '\0';
-                args[args_count] = (char*)malloc(sizeof(buf));
-                strncpy(args[args_count], buf, sizeof(buf));
-                args_count++;
-                buf_index = 0;
-            } else {
-                buf[buf_index++] = cleared_command[i];
-            }
-        }
-
-        args[args_count] = NULL;
 
         pid_t pid;
         if ((pid = fork()) == -1 ) {
@@ -108,7 +122,7 @@ int main(int argc, char const ** argv) {
             continue;
         }
 
-        for ( i = 0; i < args_count; ++i)
+        for (int i = 0; i < size; i++)
             free(args[i]);
     }
 }
