@@ -1,28 +1,33 @@
-#include <stdio.h>
-#include <unistd.h>
-#include <fcntl.h>
-#include <stdlib.h>
-#include <wait.h>
-#include <string.h>
 #include <ctype.h>
+#include <fcntl.h>
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
+#include <unistd.h>
+#include <wait.h>
 
 #define BUF_SIZE 80
 #define ARG_COUNT 10
 
 /* Courtesy of stack overflow */
-char *string_trim_inplace(char *s) {
-    while(isspace((unsigned char) *s)) s++;
+char* string_trim_inplace(char* s)
+{
+    while (isspace((unsigned char)*s))
+        s++;
     if (*s) {
-        char *p = s;
-        while(*p) p++;
-        while(isspace((unsigned char) *(--p)));
+        char* p = s;
+        while (*p)
+            p++;
+        while (isspace((unsigned char)*(--p)))
+            ;
         p[1] = '\0';
     }
 
     return s;
 }
 
-void exec_pipe(char const ** cmd1, char const ** cmd2) {
+void exec_pipe(char const** cmd1, char const** cmd2)
+{
     int fd[2];
 
     pipe(fd);
@@ -49,8 +54,9 @@ void exec_pipe(char const ** cmd1, char const ** cmd2) {
     }
 }
 
-char const * has_pipe(char const* command) {
-    char * result = NULL;
+char const* has_pipe(char const* command)
+{
+    char* result = NULL;
     if ((result = strstr(command, "|"))) {
         return result;
     }
@@ -58,13 +64,14 @@ char const * has_pipe(char const* command) {
     return result;
 }
 
-void split_command(char const * command, char ** args) {
+void split_command(char const* command, char** args)
+{
     int args_count = 0;
 
     int i;
     char buf[BUF_SIZE];
     int buf_index = 0;
-    for ( i = 0; i <= strlen(command); i++ ) {
+    for (i = 0; i <= strlen(command); i++) {
         if (command[i] == ' ' || i == strlen(command)) {
             buf[buf_index] = '\0';
             args[args_count] = (char*)malloc(sizeof(buf));
@@ -79,12 +86,13 @@ void split_command(char const * command, char ** args) {
     args[args_count] = NULL;
 }
 
-int main(int argc, char const ** argv) {
-    char * prompt = (char*)malloc(1024*sizeof(char));
+int main(int argc, char const** argv)
+{
+    char* prompt = (char*)malloc(1024 * sizeof(char));
     char cwd[1024];
     getcwd(cwd, sizeof(cwd));
     sprintf(prompt, "(%s) %s", cwd, "msh> ");
-    while(1) {
+    while (1) {
         write(STDOUT_FILENO, prompt, strlen(prompt));
 
         char command[BUF_SIZE];
@@ -97,22 +105,22 @@ int main(int argc, char const ** argv) {
         command[n - 1] = '\0';
         char* cleared_command = string_trim_inplace(command);
 
-        char * args[ARG_COUNT];
-        split_command(cleared_command, args);
-
-        if ( !strcmp(cleared_command, "exit") || !strcmp(cleared_command, "logout") ) {
+        if (!strcmp(cleared_command, "exit") || !strcmp(cleared_command, "logout")) {
             printf("Goodbye!\n");
             return 0;
         }
 
+        char* args[ARG_COUNT];
+        split_command(cleared_command, args);
+
         pid_t pid;
-        if ((pid = fork()) == -1 ) {
+        if ((pid = fork()) == -1) {
             perror("Error: ");
             exit(1);
         }
 
         if (!pid) { // child
-            if ( execvp(*args, (char* const*)&args) == -1 ) {
+            if (execvp(*args, (char* const*)&args) == -1) {
                 perror("Execvp error: ");
                 exit(1);
             }
