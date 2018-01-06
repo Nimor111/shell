@@ -22,6 +22,32 @@ char *string_trim_inplace(char *s) {
     return s;
 }
 
+void exec_pipe(char const ** cmd1, char const ** cmd2) {
+    int fd[2];
+
+    pipe(fd);
+
+    pid_t pid;
+
+    if ((pid = fork()) == -1) {
+        perror("Error: ");
+        exit(1);
+    }
+
+    if (!pid) { // child
+        close(0);
+        dup(fd[0]);
+        close(fd[0]);
+        close(fd[1]);
+        execvp(*cmd2, (char* const*)&cmd2);
+    } else { // parent
+        close(1);
+        dup(fd[1]);
+        close(fd[1]);
+        close(fd[0]);
+        execvp(*cmd1, (char* const*)&cmd1);
+    }
+}
 
 int main(int argc, char const ** argv) {
     char const * prompt = "msh> ";
