@@ -5,7 +5,6 @@
 #include <wait.h>
 #include <string.h>
 #include <ctype.h>
-#include <stdbool.h>
 
 #define BUF_SIZE 80
 #define ARG_COUNT 10
@@ -81,7 +80,10 @@ void split_command(char const * command, char ** args) {
 }
 
 int main(int argc, char const ** argv) {
-    char const * prompt = "msh> ";
+    char * prompt = (char*)malloc(1024*sizeof(char));
+    char cwd[1024];
+    getcwd(cwd, sizeof(cwd));
+    sprintf(prompt, "(%s) %s", cwd, "msh> ");
     while(1) {
         write(STDOUT_FILENO, prompt, strlen(prompt));
 
@@ -97,7 +99,6 @@ int main(int argc, char const ** argv) {
 
         char * args[ARG_COUNT];
         split_command(cleared_command, args);
-        size_t size = sizeof(args) / sizeof(args[0]);
 
         if ( !strcmp(cleared_command, "exit") || !strcmp(cleared_command, "logout") ) {
             printf("Goodbye!\n");
@@ -122,7 +123,10 @@ int main(int argc, char const ** argv) {
             continue;
         }
 
+        size_t size = sizeof(args) / sizeof(args[0]);
+
         for (int i = 0; i < size; i++)
             free(args[i]);
+        free(prompt);
     }
 }
