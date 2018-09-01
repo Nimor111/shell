@@ -1,5 +1,6 @@
 #include <ctype.h>
 #include <fcntl.h>
+#include <stdbool.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -24,6 +25,15 @@ char* string_trim_inplace(char* s)
     }
 
     return s;
+}
+
+bool is_background_command(char const* s)
+{
+    for (int i = 0; i < strlen(s); i++)
+        if (s[i] == '&')
+            return true;
+
+    return false;
 }
 
 void split_until_pipe(char* s, char* dest)
@@ -125,6 +135,13 @@ void split_command(char const* command, char** args)
     args[args_count] = NULL;
 }
 
+void split_background_command(char const* command, char** args)
+{
+    split_command(command, args);
+    size_t size = sizeof(args) / sizeof(args[0]);
+    args[size - 2] = NULL;
+}
+
 int main(int argc, char const** argv)
 {
     char* prompt = (char*)malloc(1024 * sizeof(char));
@@ -132,6 +149,10 @@ int main(int argc, char const** argv)
     getcwd(cwd, sizeof(cwd));
     sprintf(prompt, "(%s) %s", cwd, "msh> ");
     while (1) {
+        /* int status; */
+        /* if (waitpid(-1, &status, WNOHANG)) { */
+        /*     printf("Child status: %d\n", status); */
+        /* } */
         write(STDOUT_FILENO, prompt, strlen(prompt));
 
         char command[BUF_SIZE];
@@ -218,6 +239,28 @@ int main(int argc, char const** argv)
             }
         }
 
+        if (is_background_command(cleared_command) == true) {
+            cleared_command[strlen(cleared_command) - 1] = '\0';
+            split_background_command(cleared_command, args);
+            pid_t pid;
+            if ((pid = fork()) == -1) {
+                perror("Error: ");
+                exit(1);
+            }
+
+            if (!pid) { // child
+                setpgid(0, 0);
+                if (execvp(*args, (char* const*)&args) == -1) {
+                    perror("Background Execvp error: ");
+                    exit(1);
+                }
+            } else { // parent
+                /* printf("Child finished with status %d\n", status); */
+                printf("Process started with pid %d\n", pid);
+                continue;
+            }
+        }
+
         split_command(cleared_command, args);
 
         pid_t pid;
@@ -247,5 +290,6 @@ int main(int argc, char const** argv)
     }
 
     free(prompt);
+
     return 0;
 }
